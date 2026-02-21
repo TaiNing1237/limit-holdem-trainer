@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Texas Hold'em Limit 30/60 — 9-Player</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- ── Header ──────────────────────────────────────────────────────────── -->
+    <header class="header">
+      <div class="header-title">
+        ♠ Hold'em <span>Limit 30/60 · <span id="header-player-count">9</span>-Player</span>
+      </div>
+      <div class="header-controls">
+        <div class="tab-group">
+          <button class="tab-btn active" data-mode="play">Play</button>
+          <button class="tab-btn" data-mode="analyze">Analyze</button>
+        </div>
+        <button class="btn-settings" id="btn-settings" title="Settings">⚙</button>
+      </div>
+    </header>
+
+    <!-- ── Table Area ──────────────────────────────────────────────────────── -->
+    <main class="table-area">
+      <div class="table-container" id="table-container">
+
+        <!-- Felt -->
+        <div class="poker-felt">
+          <div class="felt-top">
+            <span class="street-badge" id="street-name">Pre-Flop</span>
+          </div>
+          <div class="board-cards" id="board-cards">
+            <div class="card card-placeholder"></div>
+            <div class="card card-placeholder"></div>
+            <div class="card card-placeholder"></div>
+            <div class="card card-placeholder"></div>
+            <div class="card card-placeholder"></div>
+          </div>
+          <div class="pot-display" id="pot-display">
+            <span class="pot-label">POT</span>
+            <span class="pot-amount">$0</span>
+          </div>
+          <div id="result-banner" class="result-banner"></div>
+        </div>
+
+        <!-- ── Seat 0: Player (bottom center) ─────────────────────────────── -->
+        <div class="seat seat-0 seat-player" id="seat-0">
+          <div class="dealer-badge" id="dealer-0" style="display:none">BTN</div>
+          <div class="seat-header">
+            <span class="seat-name-label">You</span>
+            <span class="seat-role" id="role-0"></span>
+          </div>
+          <div class="seat-cards" id="cards-0"></div>
+          <div class="seat-chips" id="chips-0"></div>
+          <div class="seat-bet" id="bet-0"></div>
+          <div class="action-bubble" id="bubble-0"></div>
+        </div>
+
+        <!-- ── Seat 1: AI 1 (bottom-right) ───────────────────────────────── -->
+        <div class="seat seat-1" id="seat-1">
+          <div class="dealer-badge" id="dealer-1" style="display:none">BTN</div>
+          <div class="seat-header">
+            <span class="seat-name-label">AI 1</span>
+            <span class="seat-role" id="role-1"></span>
+          </div>
+          <div class="seat-cards" id="cards-1"></div>
+          <div class="seat-chips" id="chips-1"></div>
+          <div class="seat-bet" id="bet-1"></div>
+          <div class="action-bubble" id="bubble-1"></div>
+          <div class="seat-range" id="range-1"></div>
+        </div>
+
+        <!-- ── Seat 2: AI 2 (right) ──────────────────────────────────────── -->
+        <div class="seat seat-2" id="seat-2">
+          <div class="dealer-badge" id="dealer-2" style="display:none">BTN</div>
+          <div class="seat-header">
+            <span class="seat-name-label">AI 2</span>
+            <span class="seat-role" id="role-2"></span>
+          </div>
+          <div class="seat-cards" id="cards-2"></div>
+          <div class="seat-chips" id="chips-2"></div>
+          <div class="seat-bet" id="bet-2"></div>
+          <div class="action-bubble" id="bubble-2"></div>
+          <div class="seat-range" id="range-2"></div>
+        </div>
+
+        <!-- ── Seat 3: AI 3 (top-right) ──────────────────────────────────── -->
+        <div class="seat seat-3" id="seat-3">
+          <div class="dealer-badge" id="dealer-3" style="display:none">BTN</div>
+          <div class="seat-header">
+            <span class="seat-name-label">AI 3</span>
+            <span class="seat-role" id="role-3"></span>
+          </div>
+          <div class="seat-cards" id="cards-3"></div>
+          <div class="seat-chips" id="chips-3"></div>
+          <div class="seat-bet" id="bet-3"></div>
+          <div class="action-bubble" id="bubble-3"></div>
+          <div class="seat-range" id="range-3"></div>
+        </div>
+
+        <!-- ── Seat 4: AI 4 (top center-right) ──────────────────────────── -->
+        <div class="seat seat-4" id="seat-4">
+          <div class="dealer-badge" id="dealer-4" style="display:none">BTN</div>
+          <div class="seat-header">
+            <span class="seat-name-label">AI 4</span>
+            <span class="seat-role" id="role-4"></span>
+          </div>
+          <div class="seat-cards" id="cards-4"></div>
+          <div class="seat-chips" id="chips-4"></div>
+          <div class="seat-bet" id="bet-4"></div>
+          <div class="action-bubble" id="bubble-4"></div>
+          <div class="seat-range" id="range-4"></div>
+        </div>
+
+        <!-- ── Seat 5: AI 5 (top center-left) ───────────────────────────── -->
+        <div class="seat seat-5" id="seat-5">
+          <div class="dealer-badge" id="dealer-5" style="display:none">BTN</div>
+          <div class="seat-header">
+            <span class="seat-name-label">AI 5</span>
+            <span class="seat-role" id="role-5"></span>
+          </div>
+          <div class="seat-cards" id="cards-5"></div>
+          <div class="seat-chips" id="chips-5"></div>
+          <div class="seat-bet" id="bet-5"></div>
+          <div class="action-bubble" id="bubble-5"></div>
+          <div class="seat-range" id="range-5"></div>
+        </div>
+
+        <!-- ── Seat 6: AI 6 (top-left) ───────────────────────────────────── -->
+        <div class="seat seat-6" id="seat-6">
+          <div class="dealer-badge" id="dealer-6" style="display:none">BTN</div>
+          <div class="seat-header">
+            <span class="seat-name-label">AI 6</span>
+            <span class="seat-role" id="role-6"></span>
+          </div>
+          <div class="seat-cards" id="cards-6"></div>
+          <div class="seat-chips" id="chips-6"></div>
+          <div class="seat-bet" id="bet-6"></div>
+          <div class="action-bubble" id="bubble-6"></div>
+          <div class="seat-range" id="range-6"></div>
+        </div>
+
+        <!-- ── Seat 7: AI 7 (left) ───────────────────────────────────────── -->
+        <div class="seat seat-7" id="seat-7">
+          <div class="dealer-badge" id="dealer-7" style="display:none">BTN</div>
+          <div class="seat-header">
+            <span class="seat-name-label">AI 7</span>
+            <span class="seat-role" id="role-7"></span>
+          </div>
+          <div class="seat-cards" id="cards-7"></div>
+          <div class="seat-chips" id="chips-7"></div>
+          <div class="seat-bet" id="bet-7"></div>
+          <div class="action-bubble" id="bubble-7"></div>
+          <div class="seat-range" id="range-7"></div>
+        </div>
+
+        <!-- ── Seat 8: AI 8 (bottom-left) ───────────────────────────────── -->
+        <div class="seat seat-8" id="seat-8">
+          <div class="dealer-badge" id="dealer-8" style="display:none">BTN</div>
+          <div class="seat-header">
+            <span class="seat-name-label">AI 8</span>
+            <span class="seat-role" id="role-8"></span>
+          </div>
+          <div class="seat-cards" id="cards-8"></div>
+          <div class="seat-chips" id="chips-8"></div>
+          <div class="seat-bet" id="bet-8"></div>
+          <div class="action-bubble" id="bubble-8"></div>
+          <div class="seat-range" id="range-8"></div>
+        </div>
+
+        <!-- Action buttons (shown when player's turn) -->
+        <div id="action-buttons"></div>
+
+      </div><!-- /.table-container -->
+    </main>
+
+    <!-- ── Solver panel: fixed floating overlay, bottom-left ──────────────── -->
+    <div id="solver-panel">
+      <p class="solver-placeholder">Deal a hand to see analysis.</p>
+    </div>
+
+    <!-- ── Sidebar ────────────────────────────────────────────────────────── -->
+    <aside class="sidebar">
+
+      <!-- Panel toggle tabs -->
+      <div class="sidebar-tabs">
+        <button class="ptab" id="ptab-history" onclick="Panels.toggle('history')">📊 Results</button>
+        <button class="ptab" id="ptab-chart" onclick="Panels.toggle('chart')">📈 Chart</button>
+      </div>
+
+      <!-- Action Log -->
+      <div class="action-log">
+        <div class="action-log-title">Action Log</div>
+        <div class="action-log-list" id="action-log-list">
+          <div class="log-empty">Hand in progress…</div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-panel">
+        <div class="stats-title">Session</div>
+        <div class="stat-row">
+          <span class="stat-label">Your chips</span>
+          <span class="stat-value" id="stat-player-chips">$1,500</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Hands played</span>
+          <span class="stat-value" id="stat-hands">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Bet sizes</span>
+          <span class="stat-value">$30 / $60</span>
+        </div>
+        <div class="download-row">
+          <button class="btn-download" onclick="History.download()">↓ Download History</button>
+          <span class="history-count" id="history-count">0 hands</span>
+        </div>
+      </div>
+
+    </aside>
+
+  </div><!-- /.app -->
+
+  <!-- ── Overlay panels (slide in from right) ──────────────────────────────── -->
+
+  <!-- Hand Results Panel -->
+  <div class="side-panel" id="panel-history">
+    <div class="sp-header">
+      <span class="sp-title">Hand Results</span>
+      <button class="sp-close" onclick="Panels.toggle('history')">✕</button>
+    </div>
+    <div class="sp-body" id="panel-history-body">
+      <div class="pn-empty">No hands recorded yet.</div>
+    </div>
+  </div>
+
+  <!-- Asset Chart Panel -->
+  <div class="side-panel" id="panel-chart">
+    <div class="sp-header">
+      <span class="sp-title">Your Asset</span>
+      <button class="sp-close" onclick="Panels.toggle('chart')">✕</button>
+    </div>
+    <div class="sp-body" id="panel-chart-body">
+      <div class="pn-empty">Play some hands to see your chip trend.</div>
+    </div>
+  </div>
+
+  <!-- ── Settings Modal ────────────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Game Settings</h2>
+        <button class="modal-close" id="btn-close-settings">×</button>
+      </div>
+      <div class="modal-body">
+
+        <div class="settings-group">
+          <label class="settings-label">Number of Players</label>
+          <div class="count-btns" id="modal-count-btns">
+            <button class="count-btn" data-count="2">2</button>
+            <button class="count-btn" data-count="3">3</button>
+            <button class="count-btn" data-count="4">4</button>
+            <button class="count-btn" data-count="5">5</button>
+            <button class="count-btn" data-count="6">6</button>
+            <button class="count-btn" data-count="7">7</button>
+            <button class="count-btn" data-count="8">8</button>
+            <button class="count-btn active" data-count="9">9</button>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <label class="settings-label" for="mute-toggle">Mute Sound Effects</label>
+          <label class="switch">
+            <input type="checkbox" id="mute-toggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn-save-settings" id="btn-save-settings">Save and start a new game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts (order matters) -->
+  <script src="js/sounds.js"></script>
+  <script src="js/constants.js"></script>
+  <script src="js/hand-eval.js"></script>
+  <script src="js/deck.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/range.js"></script>
+  <script src="js/solver.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/panels.js"></script>
+  <script src="js/main.js"></script>
+</body>
+
+</html>
