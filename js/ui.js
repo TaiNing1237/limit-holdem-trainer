@@ -628,6 +628,22 @@ function renderAll(game, solverData) {
   const mult = 1 << (game.betLevel || 0);
   const blindTitleEl = document.getElementById('header-title-blinds');
   if (blindTitleEl) blindTitleEl.textContent = `Limit ${SMALL_BET * mult}/${BIG_BET * mult}`;
+
+  // Session stats - Bet sizes
+  const sbEl = document.getElementById('stat-bet-sizes');
+  if (sbEl) sbEl.textContent = `$${SMALL_BET * mult} / $${BIG_BET * mult}`;
+
+  // Session stats - Next blind double countdown
+  const nextDoubleRow = document.getElementById('stat-next-double-row');
+  const nextDoubleEl = document.getElementById('stat-next-double');
+  if (typeof blindDoublingHands !== 'undefined' && blindDoublingHands > 0) {
+    if (nextDoubleRow) nextDoubleRow.style.display = '';
+    const handsPlayed = game.handsPlayed || 0;
+    const remaining = blindDoublingHands - (handsPlayed % blindDoublingHands);
+    if (nextDoubleEl) nextDoubleEl.textContent = `in ${remaining} hand${remaining !== 1 ? 's' : ''}`;
+  } else {
+    if (nextDoubleRow) nextDoubleRow.style.display = 'none';
+  }
 }
 
 // Called after each action to show bubble

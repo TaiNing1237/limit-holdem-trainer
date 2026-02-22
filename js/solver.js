@@ -117,6 +117,39 @@ function recommend(equity, pot, callAmount, numOpponents) {
   return { action, reason, color, potOdds };
 }
 
+// ── Preflop recommendation based on Chen Formula ──────────────────────────────
+function recommendPreflop(game, ps, callAmount) {
+  const playerCards = game.hands[ps];
+  const score = chenScore(playerCards[0], playerCards[1]);
+
+  const aliveSeats = [];
+  for (let j = 0; j < game.numPlayers; j++) {
+    if (!game.eliminated || !game.eliminated[j]) aliveSeats.push(j);
+  }
+  const posBonus = positionBonus(ps, game.dealerSeat, aliveSeats);
+  const adj = score + posBonus;
+
+  const maxBet = Math.max(...game.bets);
+  let action, reason, color;
+
+  if (maxBet <= BIG_BLIND) {
+    // Unopened / Limped pot
+    if (adj >= 10) { action = 'Raise'; color = 'raise'; reason = `Chen Score ${score} + Pos ${posBonus}. Premium hand, Raise.`; }
+    else if (adj >= 8) { action = 'Raise'; color = 'raise'; reason = `Chen Score ${score} + Pos ${posBonus}. Strong hand, Raise.`; }
+    else if (adj >= 6) { action = 'Raise'; color = 'raise'; reason = `Chen Score ${score} + Pos ${posBonus}. Marginal open, Raise/Call.`; }
+    else if (adj >= 5) { action = 'Call'; color = 'call'; reason = `Chen Score ${score} + Pos ${posBonus}. Playable, Call.`; }
+    else { action = 'Fold'; color = 'fold'; reason = `Chen Score ${score} + Pos ${posBonus} is too low. Fold.`; }
+  } else {
+    // Facing a raise
+    if (adj >= 10) { action = 'Raise'; color = 'raise'; reason = `Premium hand (${adj}) facing raise. Re-raise!`; }
+    else if (adj >= 8) { action = 'Call'; color = 'call'; reason = `Strong hand (${adj}). Call the raise.`; }
+    else if (adj >= 6) { action = 'Call'; color = 'call'; reason = `Marginal hand (${adj}). Thin call.`; }
+    else { action = 'Fold'; color = 'fold'; reason = `Weak hand (${adj}) facing raise. Fold.`; }
+  }
+  return { action, reason, color, potOdds: 0 };
+}
+
+
 // Range-conditioned equity: sample opponent hands from their Bayesian range
 function calcPlayerEquityRangeAware(game, N = 800) {
   const ps = game.playerSeat ?? POS.PLAYER;
@@ -204,6 +237,13 @@ function solverAnalyze(game) {
     : calcPlayerEquityMulti(game, 800);
 
   const callAmt = game.isPlayerTurn() ? game.callAmount() : 0;
-  const rec = recommend(equity, game.pot, callAmt, numOpponents);
+
+  let rec;
+  if (game.street === STREET.PREFLOP) {
+    rec = recommendPreflop(game, ps, callAmt);
+  } else {
+    rec = recommend(equity, game.pot, callAmt, numOpponents);
+  }
+
   return { equity, outsCount, outsDesc, rec, numOpponents };
 }
