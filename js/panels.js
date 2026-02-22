@@ -47,14 +47,20 @@ const Panels = (() => {
       return;
     }
 
-    const N = hands[0].numPlayers;
-    const seatName = i => i === 0 ? 'You' : `AI ${i}`;
+    const lastHand = hands[hands.length - 1];
+    const N = lastHand.numPlayers;
+    const ps = lastHand.playerSeat ?? POS.PLAYER;
+    const seatName = (i, h) => {
+      if (i === (h.playerSeat ?? POS.PLAYER)) return 'You';
+      if (h.playerNames && h.playerNames[i]) return h.playerNames[i];
+      return SEAT_NAMES[i];
+    };
 
-    // Sticky header
+    // Sticky header (use last hand's names/seat for column labels)
     let html = '<div class="ph-wrap"><table class="ph-table"><thead><tr>';
     html += '<th>#</th><th>Pot</th>';
     for (let i = 0; i < N; i++) {
-      html += `<th class="${i === 0 ? 'ph-you' : ''}">${seatName(i)}</th>`;
+      html += `<th class="${i === ps ? 'ph-you' : ''}">${seatName(i, lastHand)}</th>`;
     }
     html += '</tr></thead><tbody>';
 
@@ -90,7 +96,7 @@ const Panels = (() => {
 
     const hands = History.getHands();
     // Series: starting chips + chip count after each recorded hand
-    const series = [STARTING_CHIPS, ...hands.map(h => h.chipsEnd[POS.PLAYER] ?? STARTING_CHIPS)];
+    const series = [STARTING_CHIPS, ...hands.map(h => h.chipsEnd[h.playerSeat ?? POS.PLAYER] ?? STARTING_CHIPS)];
 
     if (series.length < 2) {
       el.innerHTML = '<div class="pn-empty">Play some hands to see your chip trend.</div>';

@@ -68,10 +68,10 @@ function chipStackHTML(amount) {
 // Seats are arranged clockwise starting from bottom (seat 0 = player).
 // Uses an elliptical formula scaled to the table-container aspect ratio.
 // Container aspect: 820 × 560. Felt center ≈ 50%, 48%.
-const _LAYOUT_CX = 50, _LAYOUT_CY = 48;
+const _LAYOUT_CX = 50, _LAYOUT_CY = 40;
 const _LAYOUT_RX = 42, _LAYOUT_RY = 38; // % radii
 
-function applyTableLayout(N) {
+function applyTableLayout(N, mySeat = 0) {
   for (let i = 0; i < NUM_SEATS; i++) {
     const el = document.getElementById(`seat-${i}`);
     if (!el) continue;
@@ -79,13 +79,49 @@ function applyTableLayout(N) {
       el.style.display = 'none';
     } else {
       el.style.display = '';
-      // Seat i is at clockwise angle starting from bottom (90°)
-      const deg = 90 + i * (360 / N);
+      // Rotate so that mySeat is always at the bottom (90°); others follow clockwise
+      const visualPos = (i - mySeat + N) % N;
+      const deg = 90 + visualPos * (360 / N);
       const rad = deg * Math.PI / 180;
-      const x = _LAYOUT_CX + _LAYOUT_RX * Math.cos(rad);
-      const y = _LAYOUT_CY + _LAYOUT_RY * Math.sin(rad);
+      const sx = Math.sin(rad);  // >0 = lower half, <0 = upper half
+      const cx = Math.cos(rad);  // >0 = right half, <0 = left half
+      const x = _LAYOUT_CX + _LAYOUT_RX * cx;
+      const y = _LAYOUT_CY + _LAYOUT_RY * sx;
       el.style.left = x.toFixed(1) + '%';
       el.style.top = y.toFixed(1) + '%';
+
+      // ── Bet position: toward felt center ─────────────────────────────────
+      const betEl = el.querySelector('.seat-bet');
+      if (betEl) {
+        betEl.style.top = betEl.style.bottom = betEl.style.left = betEl.style.right = '';
+        // Vertical: lower half → bet above seat (toward center); upper half → bet below
+        betEl.style[sx >= 0 ? 'top' : 'bottom'] = '-18px';
+        // Horizontal nudge toward center
+        if (cx > 0.35) betEl.style.right = '0';
+        else if (cx < -0.35) betEl.style.left = '0';
+      }
+
+      // ── Range position: away from felt center ─────────────────────────────
+      const rangeEl = el.querySelector('.seat-range');
+      if (rangeEl) {
+        rangeEl.style.top = rangeEl.style.bottom = rangeEl.style.left = rangeEl.style.right = rangeEl.style.transform = '';
+        if (Math.abs(cx) > 0.65 && Math.abs(sx) < 0.55) {
+          // Clearly left/right side → range on the outer lateral side
+          rangeEl.style.top = '50%';
+          rangeEl.style[cx > 0 ? 'left' : 'right'] = 'calc(100% + 6px)';
+          rangeEl.style.transform = 'translateY(-50%)';
+        } else if (sx >= 0) {
+          // Lower half → range below (away from center)
+          rangeEl.style.top = 'calc(100% + 4px)';
+          rangeEl.style.left = '50%';
+          rangeEl.style.transform = 'translateX(-50%)';
+        } else {
+          // Upper half → range above (away from center)
+          rangeEl.style.bottom = 'calc(100% + 4px)';
+          rangeEl.style.left = '50%';
+          rangeEl.style.transform = 'translateX(-50%)';
+        }
+      }
     }
   }
 }
@@ -100,7 +136,7 @@ function renderSeat(game, seat) {
   const el = document.getElementById(`seat-${seat}`);
   if (!el) return;
 
-  const isPlayer = seat === POS.PLAYER;
+  const isPlayer = game.playerSeat !== null && seat === game.playerSeat;
   const isShowdown = game.street === STREET.SHOWDOWN;
   const isFolded = game.folded[seat];
   const isDealer = seat === game.dealerSeat;
@@ -113,28 +149,34 @@ function renderSeat(game, seat) {
   el.classList.toggle('seat-eliminated', isEliminated);
   el.classList.toggle('seat-winner',
     game.gameOver && (game.winners || []).includes(seat));
+  el.classList.toggle('seat-player', isPlayer);
 
   // Dealer badge
   const dealerBadge = el.querySelector('.dealer-badge');
   if (dealerBadge) dealerBadge.style.display = isDealer ? 'flex' : 'none';
 
-  // Cards — only rebuild when hand is new or face visibility changes
+  // Cards 
   const cardsEl = el.querySelector('.seat-cards');
   if (cardsEl) {
-    const showFace = isPlayer || isShowdown;
-    const stateKey = `${game.handsPlayed}-${showFace}`;
-    if (_cardCache[seat] !== stateKey) {
+    cardsEl.style.display = 'flex';
+    const showFace = isPlayer || (isShowdown && !isFolded);
+    const stateKey = `${game.handsPlayed}-${showFace}-${isShowdown}`;
+    const hd = game.hands[seat] || [];
+    if (hd.length > 0 && _cardCache[seat] !== stateKey) {
       const isNewHand = !_cardCache[seat] ||
         _cardCache[seat].split('-')[0] !== String(game.handsPlayed);
       _cardCache[seat] = stateKey;
-      cardsEl.innerHTML = game.hands[seat].map((c, i) => {
-        // Deal anim on new hand; flip anim on showdown reveal; none otherwise
-        const animClass = isNewHand ? `deal-in delay-${i}` : `flip-in delay-${i}`;
+      cardsEl.innerHTML = hd.map((c, i) => {
+        let animClass = isNewHand ? `deal-in delay-${i}` : '';
+        if (showFace && !isPlayer && !isNewHand) animClass = `flip-in delay-${i}`;
         const isWinnerCard = isShowdown && (game.winners || []).includes(seat) &&
           game.evalResults && game.evalResults[seat] &&
           game.evalResults[seat].bestCards && game.evalResults[seat].bestCards.includes(c);
-        return buildCard(c, !showFace, animClass + (isWinnerCard ? ' card-winner' : ''), !isPlayer);
+        return buildCard(c, !showFace, animClass + (isWinnerCard ? ' card-winner' : ''), true);
       }).join('');
+    } else if (hd.length === 0) {
+      cardsEl.innerHTML = '';
+      _cardCache[seat] = '';
     }
   }
 
@@ -152,6 +194,14 @@ function renderSeat(game, seat) {
     } else {
       betEl.style.display = 'none';
     }
+  }
+
+  // Seat name label (updated dynamically for multiplayer names)
+  const nameEl = el.querySelector('.seat-name-label');
+  if (nameEl) {
+    const playerNames = game.playerNames || [];
+    const displayName = playerNames[seat] || (isPlayer ? 'You' : `AI ${seat}`);
+    nameEl.textContent = displayName;
   }
 
   // Position label (BTN, SB, BB, UTG, CO, …)
@@ -223,7 +273,8 @@ function renderResult(game) {
   }
 
   // Normal hand result
-  const playerWins = (game.winners || []).includes(POS.PLAYER);
+  const ps = game.playerSeat;
+  const playerWins = ps !== null && (game.winners || []).includes(ps);
   const isSplit = game.winner === -1;
 
   if (playerWins && !isSplit) {
@@ -240,7 +291,10 @@ function renderResult(game) {
     el.innerHTML = `<span class="res-tie">Chop! Split Pot</span>`;
     el.className = 'result-banner res-tie-banner';
   } else {
-    const w = game.winner >= 0 ? SEAT_NAMES[game.winner] : 'AI';
+    const winnerSeat = game.winner ?? -1;
+    const w = winnerSeat >= 0 && winnerSeat < NUM_SEATS
+      ? ((game.playerNames && game.playerNames[winnerSeat]) || SEAT_NAMES[winnerSeat])
+      : 'Unknown';
     const hand = game.winnerHand ? game.winnerHand.categoryName : '';
     el.innerHTML = `<span class="res-lose">${w} Wins — ${hand}</span>`;
     el.className = 'result-banner res-lose-banner';
@@ -253,6 +307,12 @@ function renderButtons(game) {
   const container = document.getElementById('action-buttons');
   if (!container) return;
 
+  // Observer: seat assigned but not yet active this hand
+  if (game.playerSeat === null) {
+    container.innerHTML = `<div class="waiting-msg">Watching this hand… ♠ you'll take your seat next hand</div>`;
+    return;
+  }
+
   if (game.gameOver) {
     const isSessionOver = game.bust || game.tourWin;
     const label = isSessionOver ? 'New Game ↺' : 'New Hand ↺';
@@ -260,7 +320,8 @@ function renderButtons(game) {
     return;
   }
   if (!game.isPlayerTurn()) {
-    container.innerHTML = `<div class="waiting-msg">Waiting for <strong>${SEAT_NAMES[game.toAct]}</strong>…</div>`;
+    const toActName = (game.playerNames && game.playerNames[game.toAct]) || SEAT_NAMES[game.toAct];
+    container.innerHTML = `<div class="waiting-msg">Waiting for <strong>${toActName}</strong>…</div>`;
     return;
   }
 
@@ -287,6 +348,7 @@ function renderButtons(game) {
 
 function showActionBubble(seat, label) {
   const bubble = document.getElementById(`bubble-${seat}`);
+  const seatEl = document.getElementById(`seat-${seat}`);
   if (!bubble) return;
   const lc = label.toLowerCase();
   let cls = 'bubble-check';
@@ -295,8 +357,12 @@ function showActionBubble(seat, label) {
   else if (lc.startsWith('bet') || lc.startsWith('raise')) cls = 'bubble-raise';
   bubble.textContent = label.toUpperCase();
   bubble.className = `action-bubble ${cls} bubble-show`;
+  if (seatEl) seatEl.style.zIndex = '100';
   clearTimeout(bubble._t);
-  bubble._t = setTimeout(() => { bubble.className = 'action-bubble'; }, 2200);
+  bubble._t = setTimeout(() => {
+    bubble.className = 'action-bubble';
+    if (seatEl) seatEl.style.zIndex = '';
+  }, 2200);
 }
 
 // ── Action Log Table ──────────────────────────────────────────────────────────
@@ -351,10 +417,11 @@ function renderActionLog(game) {
   }
 
   for (let seat = 0; seat < N; seat++) {
-    const isPlayer = seat === POS.PLAYER;
+    const isPlayer = game.playerSeat !== null && seat === game.playerSeat;
     const isFolded = game.folded[seat];
     const pos = getPositionName(seat, game.dealerSeat, aliveSeats);
-    const name = isPlayer ? 'You' : `AI ${seat}`;
+    const name = isPlayer ? 'You'
+      : (game.playerNames && game.playerNames[seat]) || SEAT_NAMES[seat];
     const rowCls = [isPlayer ? 'at-player-row' : '', isFolded ? 'at-folded-row' : ''].join(' ');
 
     html += `<tr class="${rowCls}">`;
@@ -398,7 +465,7 @@ function renderSolver(game, data) {
   }
   const { equity, outsCount, outsDesc, rec, numOpponents } = data;
   const eqPct = (equity * 100).toFixed(1);
-  const cards = game.hands[POS.PLAYER];
+  const cards = game.hands[game.playerSeat ?? POS.PLAYER];
   const ev = cards.length >= 2 ? evalBest([...cards, ...game.board]) : null;
 
   let recHTML = rec ? `<div class="rec rec-${rec.color}">
@@ -440,34 +507,42 @@ function _resetPrevDist() {
 }
 
 function renderRanges(game) {
+  if (game.playerSeat === null) return;  // observer: no range analysis yet
   const hasBoard = game.board.length >= 3;
   const boardLen = game.board.length;
-  const playerCards = game.hands[POS.PLAYER];
+  const ps = game.playerSeat ?? POS.PLAYER;
+  const playerCards = game.hands[ps];
 
   // If player folded, no point showing analysis
-  if (game.folded[POS.PLAYER]) {
-    for (let s = 1; s < game.numPlayers; s++) {
+  if (game.folded[ps]) {
+    for (let s = 0; s < game.numPlayers; s++) {
+      if (s === ps) continue;
       const el = document.getElementById(`range-${s}`);
       if (el) el.innerHTML = '';
     }
     return;
   }
 
-  for (let s = 1; s < game.numPlayers; s++) {
+  for (let s = 0; s < game.numPlayers; s++) {
+    if (s === ps) continue;
     const el = document.getElementById(`range-${s}`);
     if (!el) continue;
 
     if (game.eliminated[s] || game.folded[s] || !Range.hasRange(s)) {
       el.innerHTML = '';
+      el.style.display = 'none';
       continue;
     }
 
     const pct = Range.getRangePercent(s);
 
     if (!hasBoard) {
-      el.innerHTML = `<span style="opacity:.75">~${pct}%</span>`;
+      el.innerHTML = '';
+      el.style.display = 'none';
       continue;
     }
+
+    el.style.display = '';
 
     // Score-level equity breakdown
     const eq = Range.getEquityBreakdown(s, game.board, playerCards);
@@ -545,8 +620,14 @@ function renderAll(game, solverData) {
   // Session stats
   const sp = document.getElementById('stat-player-chips');
   const sh = document.getElementById('stat-hands');
-  if (sp) sp.textContent = `$${game.chips[POS.PLAYER].toLocaleString()}`;
+  const _ps = game.playerSeat;
+  if (sp) sp.textContent = _ps !== null ? `$${game.chips[_ps].toLocaleString()}` : '—';
   if (sh) sh.textContent = game.handsPlayed;
+
+  // Dynamic blind title in header
+  const mult = 1 << (game.betLevel || 0);
+  const blindTitleEl = document.getElementById('header-title-blinds');
+  if (blindTitleEl) blindTitleEl.textContent = `Limit ${SMALL_BET * mult}/${BIG_BET * mult}`;
 }
 
 // Called after each action to show bubble

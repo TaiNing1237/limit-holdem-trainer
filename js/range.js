@@ -170,7 +170,7 @@ function update(game) {
   if (!history || history.length === 0) return;
   const e = history[history.length - 1];
   const seat = e.seat;
-  if (seat === POS.PLAYER) return;           // skip human player
+  if (seat === (game.playerSeat ?? POS.PLAYER)) return;  // skip human player
   if (seat < 0 || seat >= game.numPlayers) return;
   if (!_weights[seat]) return;
   if (game.eliminated && game.eliminated[seat]) return;

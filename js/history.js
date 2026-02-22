@@ -18,6 +18,8 @@ const History = (() => {
       handNum:       game.handsPlayed,
       timestamp:     new Date(),
       numPlayers:    game.numPlayers,
+      playerSeat:    game.playerSeat ?? POS.PLAYER,
+      playerNames:   game.playerNames ? { ...game.playerNames } : {},
       dealerSeat:    game.dealerSeat,
       sbSeat:        game.sbSeat,
       bbSeat:        game.bbSeat,

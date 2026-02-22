@@ -6,225 +6,314 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Texas Hold'em Limit 30/60 — 9-Player</title>
   <link rel="stylesheet" href="css/style.css" />
+  <!-- Firebase compat SDK (v9 compat layer — works without a bundler) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 
 <body>
-  <div class="app">
 
-    <!-- ── Header ──────────────────────────────────────────────────────────── -->
-    <header class="header">
-      <div class="header-title">
-        ♠ Hold'em <span>Limit 30/60 · <span id="header-player-count">9</span>-Player</span>
+  <!-- ── Lobby Screen ─────────────────────────────────────────────────────── -->
+  <div id="lobby-screen"
+    style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#0d1f0d;color:#e8d5a0;font-family:inherit;gap:0.5rem;">
+    <div style="font-size:2.5rem;margin-bottom:0.25rem;">♠</div>
+    <h1 style="font-size:1.8rem;margin:0 0 0.25rem;">Hold'em Trainer</h1>
+    <p style="color:#8aaa8a;margin:0 0 1.5rem;font-size:0.95rem;">Limit 30/60 · Texas Hold'em</p>
+
+    <div style="display:flex;flex-direction:column;gap:0.75rem;width:280px;">
+      <!-- Solo -->
+      <button id="btn-solo"
+        style="padding:0.85rem 1.5rem;font-size:1rem;border-radius:8px;border:none;background:#2d7a2d;color:#fff;cursor:pointer;font-weight:600;">
+        🃏 Solo Practice
+      </button>
+
+      <!-- Host -->
+      <button id="btn-host"
+        style="padding:0.85rem 1.5rem;font-size:1rem;border-radius:8px;border:none;background:#1a5276;color:#fff;cursor:pointer;font-weight:600;">
+        🏠 Create Room (Host)
+      </button>
+
+      <!-- Waiting room (shown after Host creates or Guest joins a room) -->
+      <div id="waiting-room"
+        style="display:none;background:#0a1a0a;border:1px solid #2a4a2a;border-radius:8px;padding:0.9rem;width:100%;box-sizing:border-box;">
+        <div style="font-size:0.8rem;color:#8aaa8a;text-align:center;margin-bottom:0.2rem;">Room ID — share with others:
+        </div>
+        <div id="display-room-id"
+          style="font-size:2rem;font-weight:700;color:#f0c040;letter-spacing:0.2em;text-align:center;margin-bottom:0.6rem;">
+        </div>
+        <div style="font-size:0.8rem;color:#8aaa8a;margin-bottom:0.3rem;">Players in room:</div>
+        <div id="player-list"
+          style="font-size:0.88rem;color:#e8d5a0;margin-bottom:0.7rem;min-height:1.4rem;line-height:1.8;"></div>
+        <!-- Host sees Start button; Guest sees waiting hint -->
+        <button id="btn-start-game"
+          style="display:none;width:100%;padding:0.75rem;font-size:1rem;border-radius:8px;border:none;background:#2d7a2d;color:#fff;cursor:pointer;font-weight:600;">
+          ▶ Start Game
+        </button>
+        <div id="waiting-hint" style="display:none;text-align:center;color:#8aaa8a;font-size:0.85rem;">Waiting for host
+          to start…</div>
       </div>
-      <div class="header-controls">
-        <div class="tab-group">
-          <button class="tab-btn active" data-mode="play">Play</button>
-          <button class="tab-btn" data-mode="analyze">Analyze</button>
-        </div>
-        <button class="btn-settings" id="btn-settings" title="Settings">⚙</button>
+
+      <!-- Status line -->
+      <div id="lobby-status" style="font-size:0.85rem;color:#8aaa8a;text-align:center;min-height:1.2em;"></div>
+
+      <!-- Player name input -->
+      <input id="player-name-input" placeholder="Your name" maxlength="12"
+        style="width:100%;padding:0.7rem;border-radius:8px;border:1px solid #2a4a2a;background:#0a1a0a;color:#e8d5a0;font-size:0.95rem;outline:none;box-sizing:border-box;margin-top:0.25rem;">
+
+      <!-- Join -->
+      <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+        <input id="room-id-input" placeholder="Room ID" maxlength="6"
+          style="flex:1;padding:0.75rem;border-radius:8px;border:1px solid #2a4a2a;background:#0a1a0a;color:#e8d5a0;font-size:1rem;text-transform:uppercase;letter-spacing:0.15em;outline:none;">
+        <button id="btn-join"
+          style="padding:0.75rem 1rem;border-radius:8px;border:none;background:#7b341e;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;">
+          Join Room
+        </button>
       </div>
-    </header>
-
-    <!-- ── Table Area ──────────────────────────────────────────────────────── -->
-    <main class="table-area">
-      <div class="table-container" id="table-container">
-
-        <!-- Felt -->
-        <div class="poker-felt">
-          <div class="felt-top">
-            <span class="street-badge" id="street-name">Pre-Flop</span>
-          </div>
-          <div class="board-cards" id="board-cards">
-            <div class="card card-placeholder"></div>
-            <div class="card card-placeholder"></div>
-            <div class="card card-placeholder"></div>
-            <div class="card card-placeholder"></div>
-            <div class="card card-placeholder"></div>
-          </div>
-          <div class="pot-display" id="pot-display">
-            <span class="pot-label">POT</span>
-            <span class="pot-amount">$0</span>
-          </div>
-          <div id="result-banner" class="result-banner"></div>
-        </div>
-
-        <!-- ── Seat 0: Player (bottom center) ─────────────────────────────── -->
-        <div class="seat seat-0 seat-player" id="seat-0">
-          <div class="dealer-badge" id="dealer-0" style="display:none">BTN</div>
-          <div class="seat-header">
-            <span class="seat-name-label">You</span>
-            <span class="seat-role" id="role-0"></span>
-          </div>
-          <div class="seat-cards" id="cards-0"></div>
-          <div class="seat-chips" id="chips-0"></div>
-          <div class="seat-bet" id="bet-0"></div>
-          <div class="action-bubble" id="bubble-0"></div>
-        </div>
-
-        <!-- ── Seat 1: AI 1 (bottom-right) ───────────────────────────────── -->
-        <div class="seat seat-1" id="seat-1">
-          <div class="dealer-badge" id="dealer-1" style="display:none">BTN</div>
-          <div class="seat-header">
-            <span class="seat-name-label">AI 1</span>
-            <span class="seat-role" id="role-1"></span>
-          </div>
-          <div class="seat-cards" id="cards-1"></div>
-          <div class="seat-chips" id="chips-1"></div>
-          <div class="seat-bet" id="bet-1"></div>
-          <div class="action-bubble" id="bubble-1"></div>
-          <div class="seat-range" id="range-1"></div>
-        </div>
-
-        <!-- ── Seat 2: AI 2 (right) ──────────────────────────────────────── -->
-        <div class="seat seat-2" id="seat-2">
-          <div class="dealer-badge" id="dealer-2" style="display:none">BTN</div>
-          <div class="seat-header">
-            <span class="seat-name-label">AI 2</span>
-            <span class="seat-role" id="role-2"></span>
-          </div>
-          <div class="seat-cards" id="cards-2"></div>
-          <div class="seat-chips" id="chips-2"></div>
-          <div class="seat-bet" id="bet-2"></div>
-          <div class="action-bubble" id="bubble-2"></div>
-          <div class="seat-range" id="range-2"></div>
-        </div>
-
-        <!-- ── Seat 3: AI 3 (top-right) ──────────────────────────────────── -->
-        <div class="seat seat-3" id="seat-3">
-          <div class="dealer-badge" id="dealer-3" style="display:none">BTN</div>
-          <div class="seat-header">
-            <span class="seat-name-label">AI 3</span>
-            <span class="seat-role" id="role-3"></span>
-          </div>
-          <div class="seat-cards" id="cards-3"></div>
-          <div class="seat-chips" id="chips-3"></div>
-          <div class="seat-bet" id="bet-3"></div>
-          <div class="action-bubble" id="bubble-3"></div>
-          <div class="seat-range" id="range-3"></div>
-        </div>
-
-        <!-- ── Seat 4: AI 4 (top center-right) ──────────────────────────── -->
-        <div class="seat seat-4" id="seat-4">
-          <div class="dealer-badge" id="dealer-4" style="display:none">BTN</div>
-          <div class="seat-header">
-            <span class="seat-name-label">AI 4</span>
-            <span class="seat-role" id="role-4"></span>
-          </div>
-          <div class="seat-cards" id="cards-4"></div>
-          <div class="seat-chips" id="chips-4"></div>
-          <div class="seat-bet" id="bet-4"></div>
-          <div class="action-bubble" id="bubble-4"></div>
-          <div class="seat-range" id="range-4"></div>
-        </div>
-
-        <!-- ── Seat 5: AI 5 (top center-left) ───────────────────────────── -->
-        <div class="seat seat-5" id="seat-5">
-          <div class="dealer-badge" id="dealer-5" style="display:none">BTN</div>
-          <div class="seat-header">
-            <span class="seat-name-label">AI 5</span>
-            <span class="seat-role" id="role-5"></span>
-          </div>
-          <div class="seat-cards" id="cards-5"></div>
-          <div class="seat-chips" id="chips-5"></div>
-          <div class="seat-bet" id="bet-5"></div>
-          <div class="action-bubble" id="bubble-5"></div>
-          <div class="seat-range" id="range-5"></div>
-        </div>
-
-        <!-- ── Seat 6: AI 6 (top-left) ───────────────────────────────────── -->
-        <div class="seat seat-6" id="seat-6">
-          <div class="dealer-badge" id="dealer-6" style="display:none">BTN</div>
-          <div class="seat-header">
-            <span class="seat-name-label">AI 6</span>
-            <span class="seat-role" id="role-6"></span>
-          </div>
-          <div class="seat-cards" id="cards-6"></div>
-          <div class="seat-chips" id="chips-6"></div>
-          <div class="seat-bet" id="bet-6"></div>
-          <div class="action-bubble" id="bubble-6"></div>
-          <div class="seat-range" id="range-6"></div>
-        </div>
-
-        <!-- ── Seat 7: AI 7 (left) ───────────────────────────────────────── -->
-        <div class="seat seat-7" id="seat-7">
-          <div class="dealer-badge" id="dealer-7" style="display:none">BTN</div>
-          <div class="seat-header">
-            <span class="seat-name-label">AI 7</span>
-            <span class="seat-role" id="role-7"></span>
-          </div>
-          <div class="seat-cards" id="cards-7"></div>
-          <div class="seat-chips" id="chips-7"></div>
-          <div class="seat-bet" id="bet-7"></div>
-          <div class="action-bubble" id="bubble-7"></div>
-          <div class="seat-range" id="range-7"></div>
-        </div>
-
-        <!-- ── Seat 8: AI 8 (bottom-left) ───────────────────────────────── -->
-        <div class="seat seat-8" id="seat-8">
-          <div class="dealer-badge" id="dealer-8" style="display:none">BTN</div>
-          <div class="seat-header">
-            <span class="seat-name-label">AI 8</span>
-            <span class="seat-role" id="role-8"></span>
-          </div>
-          <div class="seat-cards" id="cards-8"></div>
-          <div class="seat-chips" id="chips-8"></div>
-          <div class="seat-bet" id="bet-8"></div>
-          <div class="action-bubble" id="bubble-8"></div>
-          <div class="seat-range" id="range-8"></div>
-        </div>
-
-        <!-- Action buttons (shown when player's turn) -->
-        <div id="action-buttons"></div>
-
-      </div><!-- /.table-container -->
-    </main>
-
-    <!-- ── Solver panel: fixed floating overlay, bottom-left ──────────────── -->
-    <div id="solver-panel">
-      <p class="solver-placeholder">Deal a hand to see analysis.</p>
     </div>
+  </div>
 
-    <!-- ── Sidebar ────────────────────────────────────────────────────────── -->
-    <aside class="sidebar">
+  <!-- ── Game Root (hidden until a mode is chosen) ─────────────────────────── -->
+  <div id="game-root" style="display:none;">
+    <div class="app">
 
-      <!-- Panel toggle tabs -->
-      <div class="sidebar-tabs">
-        <button class="ptab" id="ptab-history" onclick="Panels.toggle('history')">📊 Results</button>
-        <button class="ptab" id="ptab-chart" onclick="Panels.toggle('chart')">📈 Chart</button>
-      </div>
-
-      <!-- Action Log -->
-      <div class="action-log">
-        <div class="action-log-title">Action Log</div>
-        <div class="action-log-list" id="action-log-list">
-          <div class="log-empty">Hand in progress…</div>
+      <!-- ── Header ──────────────────────────────────────────────────────────── -->
+      <header class="header">
+        <div class="header-title">
+          ♠ Hold'em <span><span id="header-title-blinds">Limit 30/60</span> · <span
+              id="header-player-count">9</span>-Player</span>
+          <span id="room-id-badge"
+            style="display:none;margin-left:0.75rem;font-size:0.72rem;font-weight:normal;background:#0a1a0a;border:1px solid #2a4a2a;padding:0.15rem 0.45rem;border-radius:4px;vertical-align:middle;color:#8aaa8a;">
+            Room&nbsp;<span id="header-room-id" style="color:#f0c040;font-weight:700;letter-spacing:0.08em;"></span>
+          </span>
         </div>
-      </div>
+        <div class="header-controls">
+          <div class="tab-group">
+            <button class="tab-btn active" data-mode="play">Play</button>
+            <button class="tab-btn" data-mode="analyze">Analyze</button>
+          </div>
+          <label
+            style="display:flex;align-items:center;gap:0.35rem;font-size:0.78rem;color:#8aaa8a;cursor:pointer;user-select:none;"
+            title="AutoPlay: execute Solver's move automatically after 3 s">
+            <input type="checkbox" id="autoplay-toggle" style="accent-color:#f0c040;">
+            <span>AutoPlay</span>
+          </label>
+          <button id="btn-leave-room"
+            style="display:none;padding:0.3rem 0.7rem;border-radius:6px;border:1px solid #7b341e;background:transparent;color:#e07060;cursor:pointer;font-size:0.75rem;"
+            title="Leave Room">✕ Leave</button>
+          <button class="btn-settings" id="btn-settings" title="Settings">⚙</button>
+        </div>
+      </header>
 
-      <!-- Stats -->
-      <div class="stats-panel">
-        <div class="stats-title">Session</div>
-        <div class="stat-row">
-          <span class="stat-label">Your chips</span>
-          <span class="stat-value" id="stat-player-chips">$1,500</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">Hands played</span>
-          <span class="stat-value" id="stat-hands">0</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">Bet sizes</span>
-          <span class="stat-value">$30 / $60</span>
-        </div>
-        <div class="download-row">
-          <button class="btn-download" onclick="History.download()">↓ Download History</button>
-          <span class="history-count" id="history-count">0 hands</span>
-        </div>
-      </div>
+      <!-- ── Table Area ──────────────────────────────────────────────────────── -->
+      <main class="table-area">
+        <div class="table-container" id="table-container">
 
-    </aside>
+          <!-- Felt -->
+          <div class="poker-felt">
+            <div class="felt-top">
+              <span class="street-badge" id="street-name">Pre-Flop</span>
+            </div>
+            <div class="board-cards" id="board-cards">
+              <div class="card card-placeholder"></div>
+              <div class="card card-placeholder"></div>
+              <div class="card card-placeholder"></div>
+              <div class="card card-placeholder"></div>
+              <div class="card card-placeholder"></div>
+            </div>
+            <div class="pot-display" id="pot-display">
+              <span class="pot-label">POT</span>
+              <span class="pot-amount">$0</span>
+            </div>
+            <div id="result-banner" class="result-banner"></div>
+          </div>
 
-  </div><!-- /.app -->
+          <!-- ── Seat 0: Player (bottom center) ─────────────────────────────── -->
+          <div class="seat seat-0 seat-player" id="seat-0">
+            <div class="dealer-badge" id="dealer-0" style="display:none">BTN</div>
+            <div class="seat-header">
+              <span class="seat-name-label">You</span>
+              <span class="seat-role" id="role-0"></span>
+            </div>
+            <div class="seat-cards" id="cards-0"></div>
+            <div class="seat-chips" id="chips-0"></div>
+            <div class="seat-bet" id="bet-0"></div>
+            <div class="action-bubble" id="bubble-0"></div>
+            <div class="seat-range" id="range-0"></div>
+          </div>
+
+          <!-- ── Seat 1: AI 1 (bottom-right) ───────────────────────────────── -->
+          <div class="seat seat-1" id="seat-1">
+            <div class="dealer-badge" id="dealer-1" style="display:none">BTN</div>
+            <div class="seat-header">
+              <span class="seat-name-label">AI 1</span>
+              <span class="seat-role" id="role-1"></span>
+            </div>
+            <div class="seat-cards" id="cards-1"></div>
+            <div class="seat-chips" id="chips-1"></div>
+            <div class="seat-bet" id="bet-1"></div>
+            <div class="action-bubble" id="bubble-1"></div>
+            <div class="seat-range" id="range-1"></div>
+          </div>
+
+          <!-- ── Seat 2: AI 2 (right) ──────────────────────────────────────── -->
+          <div class="seat seat-2" id="seat-2">
+            <div class="dealer-badge" id="dealer-2" style="display:none">BTN</div>
+            <div class="seat-header">
+              <span class="seat-name-label">AI 2</span>
+              <span class="seat-role" id="role-2"></span>
+            </div>
+            <div class="seat-cards" id="cards-2"></div>
+            <div class="seat-chips" id="chips-2"></div>
+            <div class="seat-bet" id="bet-2"></div>
+            <div class="action-bubble" id="bubble-2"></div>
+            <div class="seat-range" id="range-2"></div>
+          </div>
+
+          <!-- ── Seat 3: AI 3 (top-right) ──────────────────────────────────── -->
+          <div class="seat seat-3" id="seat-3">
+            <div class="dealer-badge" id="dealer-3" style="display:none">BTN</div>
+            <div class="seat-header">
+              <span class="seat-name-label">AI 3</span>
+              <span class="seat-role" id="role-3"></span>
+            </div>
+            <div class="seat-cards" id="cards-3"></div>
+            <div class="seat-chips" id="chips-3"></div>
+            <div class="seat-bet" id="bet-3"></div>
+            <div class="action-bubble" id="bubble-3"></div>
+            <div class="seat-range" id="range-3"></div>
+          </div>
+
+          <!-- ── Seat 4: AI 4 (top center-right) ──────────────────────────── -->
+          <div class="seat seat-4" id="seat-4">
+            <div class="dealer-badge" id="dealer-4" style="display:none">BTN</div>
+            <div class="seat-header">
+              <span class="seat-name-label">AI 4</span>
+              <span class="seat-role" id="role-4"></span>
+            </div>
+            <div class="seat-cards" id="cards-4"></div>
+            <div class="seat-chips" id="chips-4"></div>
+            <div class="seat-bet" id="bet-4"></div>
+            <div class="action-bubble" id="bubble-4"></div>
+            <div class="seat-range" id="range-4"></div>
+          </div>
+
+          <!-- ── Seat 5: AI 5 (top center-left) ───────────────────────────── -->
+          <div class="seat seat-5" id="seat-5">
+            <div class="dealer-badge" id="dealer-5" style="display:none">BTN</div>
+            <div class="seat-header">
+              <span class="seat-name-label">AI 5</span>
+              <span class="seat-role" id="role-5"></span>
+            </div>
+            <div class="seat-cards" id="cards-5"></div>
+            <div class="seat-chips" id="chips-5"></div>
+            <div class="seat-bet" id="bet-5"></div>
+            <div class="action-bubble" id="bubble-5"></div>
+            <div class="seat-range" id="range-5"></div>
+          </div>
+
+          <!-- ── Seat 6: AI 6 (top-left) ───────────────────────────────────── -->
+          <div class="seat seat-6" id="seat-6">
+            <div class="dealer-badge" id="dealer-6" style="display:none">BTN</div>
+            <div class="seat-header">
+              <span class="seat-name-label">AI 6</span>
+              <span class="seat-role" id="role-6"></span>
+            </div>
+            <div class="seat-cards" id="cards-6"></div>
+            <div class="seat-chips" id="chips-6"></div>
+            <div class="seat-bet" id="bet-6"></div>
+            <div class="action-bubble" id="bubble-6"></div>
+            <div class="seat-range" id="range-6"></div>
+          </div>
+
+          <!-- ── Seat 7: AI 7 (left) ───────────────────────────────────────── -->
+          <div class="seat seat-7" id="seat-7">
+            <div class="dealer-badge" id="dealer-7" style="display:none">BTN</div>
+            <div class="seat-header">
+              <span class="seat-name-label">AI 7</span>
+              <span class="seat-role" id="role-7"></span>
+            </div>
+            <div class="seat-cards" id="cards-7"></div>
+            <div class="seat-chips" id="chips-7"></div>
+            <div class="seat-bet" id="bet-7"></div>
+            <div class="action-bubble" id="bubble-7"></div>
+            <div class="seat-range" id="range-7"></div>
+          </div>
+
+          <!-- ── Seat 8: AI 8 (bottom-left) ───────────────────────────────── -->
+          <div class="seat seat-8" id="seat-8">
+            <div class="dealer-badge" id="dealer-8" style="display:none">BTN</div>
+            <div class="seat-header">
+              <span class="seat-name-label">AI 8</span>
+              <span class="seat-role" id="role-8"></span>
+            </div>
+            <div class="seat-cards" id="cards-8"></div>
+            <div class="seat-chips" id="chips-8"></div>
+            <div class="seat-bet" id="bet-8"></div>
+            <div class="action-bubble" id="bubble-8"></div>
+            <div class="seat-range" id="range-8"></div>
+          </div>
+
+
+        </div><!-- /.table-container -->
+
+        <!-- Hero hand (Deleted, player hand is now part of seat) -->
+
+        <!-- Action buttons (shown when player's turn) — outside table-container to avoid seat overlap -->
+        <div id="action-buttons"></div>
+        <!-- AutoPlay countdown -->
+        <div id="autoplay-countdown"
+          style="display:none;position:absolute;bottom:5.5rem;left:50%;transform:translateX(-50%);font-size:2rem;color:#f0c040;font-weight:700;pointer-events:none;text-shadow:0 0 12px rgba(240,192,64,0.7);">
+        </div>
+
+      </main>
+
+      <!-- ── Sidebar ────────────────────────────────────────────────────────── -->
+      <aside class="sidebar">
+
+        <!-- Panel toggle tabs -->
+        <div class="sidebar-tabs">
+          <button class="ptab" id="ptab-history" onclick="Panels.toggle('history')">📊 Results</button>
+          <button class="ptab" id="ptab-chart" onclick="Panels.toggle('chart')">📈 Chart</button>
+        </div>
+
+        <!-- Action Log -->
+        <div class="action-log">
+          <div class="action-log-title">Action Log</div>
+          <div class="action-log-list" id="action-log-list">
+            <div class="log-empty">Hand in progress…</div>
+          </div>
+        </div>
+
+        <!-- ── Solver panel: now part of the sidebar ──────────────────────────── -->
+        <div id="solver-panel">
+          <p class="solver-placeholder">Deal a hand to see analysis.</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-panel">
+          <div class="stats-title">Session</div>
+          <div class="stat-row">
+            <span class="stat-label">Your chips</span>
+            <span class="stat-value" id="stat-player-chips">$1,500</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Hands played</span>
+            <span class="stat-value" id="stat-hands">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Bet sizes</span>
+            <span class="stat-value">$30 / $60</span>
+          </div>
+          <div class="download-row">
+            <button class="btn-download" onclick="History.download()">↓ Download History</button>
+            <span class="history-count" id="history-count">0 hands</span>
+          </div>
+        </div>
+
+      </aside>
+
+    </div><!-- /.app -->
+  </div><!-- /#game-root -->
 
   <!-- ── Overlay panels (slide in from right) ──────────────────────────────── -->
 
@@ -281,6 +370,17 @@
           </label>
         </div>
 
+        <div class="settings-group">
+          <label class="settings-label" for="blind-doubling-select">Blind Doubling</label>
+          <select id="blind-doubling-select"
+            style="background:#0a1a0a;color:#e8d5a0;border:1px solid #2a4a2a;border-radius:6px;padding:0.4rem 0.6rem;font-size:0.9rem;cursor:pointer;">
+            <option value="0">Never</option>
+            <option value="9" selected>Every orbit (~9 hands)</option>
+            <option value="27">Every 3 orbits</option>
+            <option value="45">Every 5 orbits</option>
+          </select>
+        </div>
+
       </div>
       <div class="modal-footer">
         <button class="btn-save-settings" id="btn-save-settings">Save and start a new game</button>
@@ -300,6 +400,7 @@
   <script src="js/ui.js"></script>
   <script src="js/history.js"></script>
   <script src="js/panels.js"></script>
+  <script src="js/network.js"></script>
   <script src="js/main.js"></script>
 </body>
 

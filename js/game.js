@@ -1,9 +1,10 @@
 // game.js — Limit 30/60, 2–9 Player Texas Hold'em State Machine
 
 class Game {
-  constructor(numPlayers = 9) {
+  constructor(numPlayers = 9, playerSeat = POS.PLAYER, betLevel = 0) {
     this.numPlayers = Math.max(2, Math.min(9, numPlayers));
-    this.playerSeat = POS.PLAYER;
+    this.playerSeat = playerSeat;
+    this.betLevel = betLevel;
     const rand = Math.floor(Math.random() * this.numPlayers);
     this.dealerSeat = (rand - 1 + this.numPlayers) % this.numPlayers;
     this.chips = Array.from({ length: NUM_SEATS }, () => STARTING_CHIPS);
@@ -30,10 +31,11 @@ class Game {
       .slice(0, this.numPlayers).filter(e => !e).length;
 
     // Game over: player bust, or only 1 survivor remains
-    if (this.eliminated[POS.PLAYER] || aliveCount < 2) {
+    const mySeat = this.playerSeat ?? POS.PLAYER;
+    if ((mySeat !== null && this.eliminated[mySeat]) || aliveCount < 2) {
       this.gameOver = true;
-      this.bust      = this.eliminated[POS.PLAYER];
-      this.tourWin   = !this.eliminated[POS.PLAYER] && aliveCount < 2;
+      this.bust      = mySeat !== null && this.eliminated[mySeat];
+      this.tourWin   = !this.bust && aliveCount < 2;
       return;
     }
 
@@ -76,9 +78,10 @@ class Game {
     // Snapshot chips before blinds (used by hand history export)
     this.chipsStart = [...this.chips];
 
-    this._postBlind(this.sbSeat, SMALL_BLIND);
-    this._postBlind(this.bbSeat, BIG_BLIND);
-    this.currentBet = BIG_BLIND;
+    const mult = 1 << (this.betLevel || 0);
+    this._postBlind(this.sbSeat, SMALL_BLIND * mult);
+    this._postBlind(this.bbSeat, BIG_BLIND * mult);
+    this.currentBet = BIG_BLIND * mult;
     this.raiseCount = 1;
 
     // Deal hole cards to alive players only
@@ -273,11 +276,11 @@ class Game {
   // ── Getters ───────────────────────────────────────────────────────────────
 
   streetName()   { return STREET_NAMES[this.street] || 'Showdown'; }
-  betSize()      { return this.street <= STREET.FLOP ? SMALL_BET : BIG_BET; }
+  betSize()      { const mult = 1 << (this.betLevel || 0); return (this.street <= STREET.FLOP ? SMALL_BET : BIG_BET) * mult; }
   callAmount()   {
     const seat   = this.toAct;
     const maxBet = Math.max(...this.bets.slice(0, this.numPlayers));
     return Math.max(0, maxBet - this.bets[seat]);
   }
-  isPlayerTurn() { return !this.gameOver && this.toAct === POS.PLAYER; }
+  isPlayerTurn() { return !this.gameOver && this.toAct === this.playerSeat; }
 }

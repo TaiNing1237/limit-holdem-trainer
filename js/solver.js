@@ -1,12 +1,13 @@
 // solver.js — Equity analysis & action recommendation (player vs all opponents)
 
 function calcPlayerEquityMulti(game, N = 800) {
-  const playerCards = game.hands[POS.PLAYER];
+  const ps = game.playerSeat ?? POS.PLAYER;
+  const playerCards = game.hands[ps];
   const board = game.board;
   if (playerCards.length < 2) return { equity: 0, outsCount: 0, outsDesc: '' };
 
   const active = game.activePlayers();
-  const opponents = active.filter(s => s !== POS.PLAYER);
+  const opponents = active.filter(s => s !== ps);
   const needed = 5 - board.length;
 
   // Build remaining deck (exclude all known cards)
@@ -118,12 +119,13 @@ function recommend(equity, pot, callAmount, numOpponents) {
 
 // Range-conditioned equity: sample opponent hands from their Bayesian range
 function calcPlayerEquityRangeAware(game, N = 800) {
-  const playerCards = game.hands[POS.PLAYER];
+  const ps = game.playerSeat ?? POS.PLAYER;
+  const playerCards = game.hands[ps];
   const board = game.board;
   if (playerCards.length < 2) return { equity: 0, outsCount: 0, outsDesc: '' };
 
   const active = game.activePlayers();
-  const opponents = active.filter(s => s !== POS.PLAYER);
+  const opponents = active.filter(s => s !== ps);
   const needed = 5 - board.length;
 
   let wins = 0, ties = 0;
@@ -137,7 +139,7 @@ function calcPlayerEquityRangeAware(game, N = 800) {
     let valid = true;
 
     for (const opp of opponents) {
-      let hand = Range.sampleHand(opp, excluded);
+      let hand = Range.sampleHand(opp, excluded);  // opp already excludes ps
       if (!hand) {
         // Fallback: random 2 cards from remaining deck
         const remaining = [];
@@ -189,13 +191,14 @@ function calcPlayerEquityRangeAware(game, N = 800) {
 }
 
 function solverAnalyze(game) {
-  const playerCards = game.hands[POS.PLAYER];
-  if (playerCards.length < 2 || game.folded[POS.PLAYER]) return null;
+  const ps = game.playerSeat ?? POS.PLAYER;
+  const playerCards = game.hands[ps];
+  if (playerCards.length < 2 || game.folded[ps]) return null;
   const active = game.activePlayers();
-  const numOpponents = active.filter(s => s !== POS.PLAYER).length;
+  const numOpponents = active.filter(s => s !== ps).length;
 
   // Use range-conditioned equity if any active opponent has observed actions
-  const anyHasRange = active.some(s => s !== POS.PLAYER && Range.hasRange(s));
+  const anyHasRange = active.some(s => s !== ps && Range.hasRange(s));
   const { equity, outsCount, outsDesc } = anyHasRange
     ? calcPlayerEquityRangeAware(game, 800)
     : calcPlayerEquityMulti(game, 800);
