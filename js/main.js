@@ -262,7 +262,10 @@ function startNewHand() {
   renderAll(game, solverData);
   if (!game.gameOver) playDealSequence(game.numPlayers * 2);
   if (multiplayerMode && isHost) Network.pushGameState(game);
-  if (!game.gameOver && !game.isPlayerTurn()) scheduleAI();
+  if (!game.gameOver) {
+    if (!game.isPlayerTurn()) scheduleAI();
+    else if (autoPlayOn) startAutoPlayCountdown();
+  }
 }
 
 function startNewGame(numPlayers) {
@@ -278,7 +281,10 @@ function startNewGame(numPlayers) {
   renderAll(game, solverData);
   playDealSequence(numPlayers * 2);
   if (multiplayerMode && isHost) Network.pushGameState(game);
-  if (!game.gameOver && !game.isPlayerTurn()) scheduleAI();
+  if (!game.gameOver) {
+    if (!game.isPlayerTurn()) scheduleAI();
+    else if (autoPlayOn) startAutoPlayCountdown();
+  }
 }
 
 function updateSolver() {
