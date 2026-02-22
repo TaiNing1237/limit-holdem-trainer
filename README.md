@@ -33,5 +33,42 @@
 在這個環境中訓練的主要目標是：**「如果你連這群遵守嚴格數學紀律、偶爾才偷雞的老實 AI 都嬴不了，那先別想著對人 Bluff，先把自己的手牌價值與 Pot odds 計算練好。」**
 這非常適合做為初中階玩家的基礎功訓練，幫你養成紮實的牌力判斷與下注紀律。
 
----🚀 **歡迎大家自行取用與 Fork！**
+## 🛠️ 本地開發與運行 (Local Development)
+
+本專案使用 Firebase Realtime Database 作為多人連線的後端。為了保護安全性，Firebase 的 API 金鑰並未包含在公開的原始碼中。
+
+如果你想要 `clone` 這個專案並在本地端運行或修改，請依照以下步驟設定你的環境：
+
+1. **取得程式碼**：
+   ```bash
+   git clone https://github.com/TaiNing1237/limit-holdem-trainer.git
+   cd limit-holdem-trainer
+   ```
+
+2. **建立設定檔**：
+   在 `js/` 資料夾下，新增一個名為 `config.js` 的檔案（這個檔案已經被加進 `.gitignore` 中，不會被推送到你的遠端庫）。
+
+3. **貼上 Firebase 金鑰**：
+   將你在 Firebase 控制台取得的專案設定貼入 `config.js` 中：
+   ```javascript
+   // js/config.js
+   const FIREBASE_CONFIG = {
+     apiKey: "YOUR_API_KEY",
+     authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+     databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.asia-southeast1.firebasedatabase.app",
+     projectId: "YOUR_PROJECT_ID",
+     storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+     messagingSenderId: "YOUR_SENDER_ID",
+     appId: "YOUR_APP_ID"
+   };
+   ```
+
+4. **啟動專案**：
+   因為本專案為純前端架構 (Vanilla JS / HTML / CSS)，只要使用任何本地伺服器（例如 VS Code 的 Live Server 或 Python 的 HTTP Server）開啟根目錄的 `index.html` 即可：
+   ```bash
+   python -m http.server 8000
+   ```
+
+---
+🚀 **歡迎大家自行取用與 Fork！**
 希望這個小專案能帶給你充滿樂趣的德州撲克時光！Have fun solving and bluffing! 🎉
