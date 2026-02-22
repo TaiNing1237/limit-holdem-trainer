@@ -199,6 +199,14 @@ function resetToLobby(message = '') {
   document.getElementById('lobby-status').textContent = message;
   const nameInput = document.getElementById('player-name-input');
   if (nameInput) nameInput.value = getRandomName();
+
+  // Clear UI state for the next game
+  const logList = document.getElementById('action-log-list');
+  if (logList) logList.innerHTML = '<div class="log-empty">Hand in progress…</div>';
+  const solver = document.getElementById('solver-panel');
+  if (solver) solver.innerHTML = '<p class="solver-placeholder">Deal a hand to see analysis.</p>';
+  if (typeof Panels !== 'undefined' && Panels.closeAll) Panels.closeAll();
+  document.body.classList.remove('show-analyze'); // Fix layout shift if Analyze tab was active
 }
 
 async function leaveRoom() {
