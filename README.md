@@ -1,6 +1,6 @@
 # ♠️ Limit Hold'em Trainer
 
-這個故事起源於在咖啡廳想玩 Limit Hold'em，於是嘗試用最新的開發工具 Cloud Code 實作。結果開發出來的效果很漂亮，但在加入多人連線功能時改了很多次才調整好。這個專案是與 Anti-Gravity 合作完成的！🙌
+這個故事起源於在咖啡廳想玩 Limit Hold'em，於是嘗試用最新的開發工具 Claude Code 實作。結果開發出來的效果很漂亮，但在加入多人連線功能時改了很多次才調整好。這個專案是與 Anti-Gravity 合作完成的！🙌
 
 ![Gameplay Screenshot 1](assets/screenshot1.png)
 *(請將您的第一張圖片存入 `assets/screenshot1.png`)*
